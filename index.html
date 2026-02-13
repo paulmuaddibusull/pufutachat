@@ -3,126 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pufuta Chat - Supabase</title>
+    <title>Pufuta Chat Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --bg-body: #202025;
-            --bg-container: #2d2d35;
-            --primary: #a29bfe;
-            --text-main: #e0e0e0;
-        }
-
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: var(--bg-body); 
-            margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; color: var(--text-main);
-        }
-
-        .chat-container {
-            width: 95%; max-width: 800px; height: 85vh;
-            background: var(--bg-container); border-radius: 30px;
-            display: flex; flex-direction: column; overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-        }
-
-        header { padding: 25px; font-weight: 700; font-size: 1.3em; color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.05); }
-
-        #chat-window { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 15px; background: #26262e; }
-
-        .msg-card { 
-            background: #3a3a48; padding: 12px 18px; border-radius: 20px; border-bottom-left-radius: 4px;
-            max-width: 70%; width: fit-content; animation: slideUp 0.3s ease;
-        }
-
-        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .u-name { font-size: 0.75em; color: var(--primary); font-weight: 700; margin-bottom: 4px; }
-
-        #input-area { padding: 25px; display: flex; flex-direction: column; gap: 12px; background: var(--bg-container); }
-
-        .row { display: flex; gap: 10px; }
-
-        input { 
-            padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); 
-            background: #353540; color: white; outline: none; font-size: 1em;
-        }
-
-        button { 
-            background: var(--primary); color: #1e1e26; border: none; padding: 0 25px; 
-            border-radius: 12px; cursor: pointer; font-weight: 700;
-        }
-
-        .error { border: 2px solid #ff7675 !important; }
+        :root { --bg: #202025; --card: #2d2d35; --primary: #a29bfe; --text: #e0e0e0; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .container { width: 95%; max-width: 600px; height: 80vh; background: var(--card); border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; }
+        #chat-window { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; background: #25252e; }
+        .msg { background: #3a3a48; padding: 10px 15px; border-radius: 15px; width: fit-content; max-width: 80%; }
+        .u { font-size: 0.7em; color: var(--primary); font-weight: bold; margin-bottom: 3px; }
+        .input-area { padding: 20px; background: var(--card); display: flex; flex-direction: column; gap: 10px; }
+        input { padding: 12px; border-radius: 10px; border: 1px solid #444; background: #1e1e26; color: white; outline: none; }
+        button { padding: 12px; border-radius: 10px; border: none; background: var(--primary); color: #1e1e26; font-weight: bold; cursor: pointer; }
+        .error { border: 2px solid red !important; }
     </style>
 </head>
 <body>
 
-<div class="chat-container">
-    <header>Lounge Chat Pro</header>
-    <div id="chat-window"></div>
-    <div id="input-area">
-        <input type="text" id="username" placeholder="Nama wajib isi..." maxlength="15" autofocus>
-        <div class="row">
-            <input type="text" id="message" placeholder="Tulis pesan..." style="flex: 1;">
-            <button id="sendBtn">Kirim</button>
+<div class="container">
+    <div id="chat-window">Loading messages...</div>
+    <div class="input-area">
+        <input type="text" id="username" placeholder="Nama..." maxlength="15">
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="message" placeholder="Pesan..." style="flex: 1;">
+            <button onclick="send()">Kirim</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- GANTI DENGAN DATA SUPABASE KAMU ---
     const SB_URL = "https://unyhtmyuvlkhfmwntgtq.supabase.co";
-    const SB_KEY = "sb_publishable_I_3fRMEJ7Bv9LiCEogGItw_hZzHlClN";
-    const supabase = libsupabase.createClient(SB_URL, SB_KEY);
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVueWh0bXl1dmxraGZtd250Z3RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NzI2NDcsImV4cCI6MjA4NjU0ODY0N30.ChTXmZ6EPDNqno9AN3kzFRiktcWR5ZyEIe68qYheEZ4";
+
+    // Inisialisasi yang lebih aman
+    const supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
 
     const chatWindow = document.getElementById('chat-window');
     const msgInput = document.getElementById('message');
     const nameInput = document.getElementById('username');
 
-    // Ambil Pesan Lama
-    async function loadMessages() {
-        const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-        data.forEach(appendMessage);
+    // Ambil data pertama kali
+    async function load() {
+        const { data, error } = await supabaseClient.from('messages').select('*').order('created_at', { ascending: true });
+        if (error) {
+            chatWindow.innerHTML = "Error: " + error.message;
+        } else {
+            chatWindow.innerHTML = '';
+            data.forEach(render);
+        }
     }
 
-    // Fungsi Render Bubble
-    function appendMessage(msg) {
+    function render(msg) {
         const div = document.createElement('div');
-        div.className = 'msg-card';
-        div.innerHTML = `<div class="u-name">${msg.username}</div><div>${msg.content}</div>`;
+        div.className = 'msg';
+        div.innerHTML = `<div class="u">${msg.username}</div><div>${msg.content}</div>`;
         chatWindow.appendChild(div);
         chatWindow.scrollTop = chatWindow.scrollHeight;
     }
 
-    // Kirim Pesan
     async function send() {
         const user = nameInput.value.trim();
         const text = msgInput.value.trim();
 
-        if (!user) {
-            nameInput.classList.add('error');
-            nameInput.focus();
-            return;
-        }
+        if (!user) { nameInput.classList.add('error'); return; }
         nameInput.classList.remove('error');
         if (!text) return;
 
-        await supabase.from('messages').insert([{ username: user, content: text }]);
-        msgInput.value = '';
+        const { error } = await supabaseClient.from('messages').insert([{ username: user, content: text }]);
+        
+        if (error) {
+            alert("Gagal kirim: " + error.message);
+        } else {
+            msgInput.value = '';
+        }
     }
 
-    // Realtime Listening
-    supabase.channel('messages')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-            appendMessage(payload.new);
-        })
-        .subscribe();
+    // Realtime
+    supabaseClient.channel('any').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+        render(payload.new);
+    }).subscribe();
 
-    document.getElementById('sendBtn').onclick = send;
-    msgInput.onkeypress = (e) => { if(e.key === "Enter") send() };
-    loadMessages();
+    load();
 </script>
-
 </body>
 </html>
