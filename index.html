@@ -3,183 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pufuta Chat - Vercel Edition</title>
-    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+    <title>Pufuta Chat - Supabase</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg-color: #f0f2f5;
-            --primary-color: #6c5ce7;
-            --secondary-color: #a29bfe;
-            --text-dark: #2d3436;
+            --bg-body: #202025;
+            --bg-container: #2d2d35;
+            --primary: #a29bfe;
+            --text-main: #e0e0e0;
         }
 
         body { 
             font-family: 'Inter', sans-serif; 
-            background: var(--bg-color); 
-            margin: 0; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
+            background: var(--bg-body); 
+            margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; color: var(--text-main);
         }
 
         .chat-container {
-            width: 90%;
-            max-width: 400px;
-            height: 600px;
-            background: white;
-            border-radius: 24px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            overflow: hidden;
+            width: 95%; max-width: 800px; height: 85vh;
+            background: var(--bg-container); border-radius: 30px;
+            display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
         }
 
-        header { 
-            background: white; 
-            padding: 20px; 
-            text-align: center; 
-            font-weight: 700; 
-            color: var(--text-dark);
-            border-bottom: 1px solid #eee;
-        }
+        header { padding: 25px; font-weight: 700; font-size: 1.3em; color: var(--primary); border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-        #chat-window { 
-            flex: 1; 
-            overflow-y: auto; 
-            padding: 15px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 12px;
-            background: #fafafa;
-        }
+        #chat-window { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 15px; background: #26262e; }
 
         .msg-card { 
-            background: white; 
-            padding: 10px 14px; 
-            border-radius: 15px; 
-            border-bottom-left-radius: 2px;
-            max-width: 85%; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-            border: 1px solid #f0f0f0;
+            background: #3a3a48; padding: 12px 18px; border-radius: 20px; border-bottom-left-radius: 4px;
+            max-width: 70%; width: fit-content; animation: slideUp 0.3s ease;
         }
 
-        .user-name { 
-            font-size: 0.75em; 
-            color: var(--primary-color); 
-            font-weight: 600; 
-            margin-bottom: 4px;
-        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        #input-area { 
-            padding: 15px; 
-            background: white;
-            display: flex; 
-            flex-direction: column;
-            gap: 8px;
-            border-top: 1px solid #eee;
-        }
+        .u-name { font-size: 0.75em; color: var(--primary); font-weight: 700; margin-bottom: 4px; }
 
-        .inputs-row { display: flex; gap: 8px; }
+        #input-area { padding: 25px; display: flex; flex-direction: column; gap: 12px; background: var(--bg-container); }
+
+        .row { display: flex; gap: 10px; }
 
         input { 
-            padding: 12px 15px; 
-            border-radius: 12px; 
-            border: 1px solid #eee; 
-            outline: none; 
-            background: #f9f9f9;
+            padding: 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); 
+            background: #353540; color: white; outline: none; font-size: 1em;
         }
 
         button { 
-            background: var(--primary-color); 
-            color: white; 
-            border: none; 
-            padding: 12px 20px; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            font-weight: 600;
+            background: var(--primary); color: #1e1e26; border: none; padding: 0 25px; 
+            border-radius: 12px; cursor: pointer; font-weight: 700;
         }
 
-        .error-shake {
-            border: 2px solid #ff7675 !important;
-            animation: shake 0.4s;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
+        .error { border: 2px solid #ff7675 !important; }
     </style>
 </head>
 <body>
 
 <div class="chat-container">
-    <header>✨ Pufuta Chat</header>
+    <header>Lounge Chat Pro</header>
     <div id="chat-window"></div>
-
     <div id="input-area">
         <input type="text" id="username" placeholder="Nama wajib isi..." maxlength="15" autofocus>
-        <div class="inputs-row">
-            <input type="text" id="message" placeholder="Tulis pesan...">
-            <button onclick="send()">Kirim</button>
+        <div class="row">
+            <input type="text" id="message" placeholder="Tulis pesan..." style="flex: 1;">
+            <button id="sendBtn">Kirim</button>
         </div>
     </div>
 </div>
 
 <script>
-    // PERBAIKAN: Menggunakan beberapa relay server cadangan
-    const gun = Gun([
-        'https://gun-manhattan.herokuapp.com/gun',
-        'https://libros.mkg20001.io/gun', // Cadangan 1
-        'https://peer.wallie.io/gun'      // Cadangan 2
-    ]);
-
-    // PERBAIKAN: Gunakan nama room yang sangat unik agar tidak bentrok dengan user Gun lain
-    const chatData = gun.get('pufutachat_v1_unique_room_99'); 
+    // --- GANTI DENGAN DATA SUPABASE KAMU ---
+    const SB_URL = "https://unyhtmyuvlkhfmwntgtq.supabase.co";
+    const SB_KEY = "sb_publishable_I_3fRMEJ7Bv9LiCEogGItw_hZzHlClN";
+    const supabase = libsupabase.createClient(SB_URL, SB_KEY);
 
     const chatWindow = document.getElementById('chat-window');
     const msgInput = document.getElementById('message');
     const nameInput = document.getElementById('username');
 
-    function send() {
+    // Ambil Pesan Lama
+    async function loadMessages() {
+        const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+        data.forEach(appendMessage);
+    }
+
+    // Fungsi Render Bubble
+    function appendMessage(msg) {
+        const div = document.createElement('div');
+        div.className = 'msg-card';
+        div.innerHTML = `<div class="u-name">${msg.username}</div><div>${msg.content}</div>`;
+        chatWindow.appendChild(div);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // Kirim Pesan
+    async function send() {
         const user = nameInput.value.trim();
         const text = msgInput.value.trim();
 
         if (!user) {
-            nameInput.classList.add('error-shake');
+            nameInput.classList.add('error');
             nameInput.focus();
-            setTimeout(() => nameInput.classList.remove('error-shake'), 400);
             return;
         }
-
+        nameInput.classList.remove('error');
         if (!text) return;
 
-        chatData.set({
-            user: user,
-            text: text,
-            time: Date.now()
-        });
+        await supabase.from('messages').insert([{ username: user, content: text }]);
         msgInput.value = '';
     }
 
-    // Mengambil data
-    chatData.map().once((data, id) => {
-        if (data && data.text) {
-            const div = document.createElement('div');
-            div.className = 'msg-card';
-            div.innerHTML = `
-                <div class="user-name">${data.user}</div>
-                <div class="msg-text">${data.text}</div>
-            `;
-            chatWindow.appendChild(div);
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-    });
+    // Realtime Listening
+    supabase.channel('messages')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+            appendMessage(payload.new);
+        })
+        .subscribe();
 
-    // Event Listeners
-    msgInput.addEventListener("keypress", (e) => { if (e.key === "Enter") send(); });
-    nameInput.addEventListener("keypress", (e) => { if (e.key === "Enter") msgInput.focus(); });
+    document.getElementById('sendBtn').onclick = send;
+    msgInput.onkeypress = (e) => { if(e.key === "Enter") send() };
+    loadMessages();
 </script>
 
 </body>
