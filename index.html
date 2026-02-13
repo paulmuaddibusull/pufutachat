@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Room Modern</title>
+    <title>Pufuta Chat - Vercel Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
     <style>
-        /* Gaya ala Pututara: Clean, Pastel, & Rounded */
         :root {
             --bg-color: #f0f2f5;
             --primary-color: #6c5ce7;
@@ -15,7 +14,7 @@
         }
 
         body { 
-            font-family: 'Inter', -apple-system, sans-serif; 
+            font-family: 'Inter', sans-serif; 
             background: var(--bg-color); 
             margin: 0; 
             display: flex; 
@@ -24,10 +23,9 @@
             height: 100vh; 
         }
 
-        /* Memperkecil Area Chat */
         .chat-container {
             width: 90%;
-            max-width: 400px; /* Ukuran mungil & pas */
+            max-width: 400px;
             height: 600px;
             background: white;
             border-radius: 24px;
@@ -44,7 +42,6 @@
             font-weight: 700; 
             color: var(--text-dark);
             border-bottom: 1px solid #eee;
-            font-size: 1.1em;
         }
 
         #chat-window { 
@@ -57,7 +54,6 @@
             background: #fafafa;
         }
 
-        /* Bubble Chat Estetik */
         .msg-card { 
             background: white; 
             padding: 10px 14px; 
@@ -66,30 +62,15 @@
             max-width: 85%; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.03);
             border: 1px solid #f0f0f0;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .user-name { 
             font-size: 0.75em; 
             color: var(--primary-color); 
             font-weight: 600; 
-            margin-bottom: 4px; 
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            margin-bottom: 4px;
         }
 
-        .msg-text {
-            color: var(--text-dark);
-            line-height: 1.4;
-            font-size: 0.95em;
-        }
-
-        /* Input Area Minimalis */
         #input-area { 
             padding: 15px; 
             background: white;
@@ -107,57 +88,71 @@
             border: 1px solid #eee; 
             outline: none; 
             background: #f9f9f9;
-            transition: 0.3s;
-            font-size: 0.9em;
         }
-
-        input:focus { border-color: var(--secondary-color); background: white; }
 
         button { 
             background: var(--primary-color); 
             color: white; 
             border: none; 
-            padding: 12px; 
+            padding: 12px 20px; 
             border-radius: 12px; 
             cursor: pointer; 
             font-weight: 600;
-            transition: 0.3s;
         }
 
-        button:hover { background: var(--secondary-color); transform: scale(1.02); }
-        
-        /* Scrollbar Halus */
-        #chat-window::-webkit-scrollbar { width: 4px; }
-        #chat-window::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 10px; }
+        .error-shake {
+            border: 2px solid #ff7675 !important;
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
     </style>
 </head>
 <body>
 
 <div class="chat-container">
-    <header>✨ Lounge Chat</header>
+    <header>✨ Pufuta Chat</header>
     <div id="chat-window"></div>
 
     <div id="input-area">
-        <input type="text" id="username" placeholder="Nama kamu..." maxlength="15">
+        <input type="text" id="username" placeholder="Nama wajib isi..." maxlength="15" autofocus>
         <div class="inputs-row">
-            <input type="text" id="message" placeholder="Tulis pesan..." style="flex: 1;">
+            <input type="text" id="message" placeholder="Tulis pesan...">
             <button onclick="send()">Kirim</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Inisialisasi Gun.js
-    const gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
-    const chatData = gun.get('room-belajar-estetik-99'); 
+    // PERBAIKAN: Menggunakan beberapa relay server cadangan
+    const gun = Gun([
+        'https://gun-manhattan.herokuapp.com/gun',
+        'https://libros.mkg20001.io/gun', // Cadangan 1
+        'https://peer.wallie.io/gun'      // Cadangan 2
+    ]);
+
+    // PERBAIKAN: Gunakan nama room yang sangat unik agar tidak bentrok dengan user Gun lain
+    const chatData = gun.get('pufutachat_v1_unique_room_99'); 
 
     const chatWindow = document.getElementById('chat-window');
     const msgInput = document.getElementById('message');
     const nameInput = document.getElementById('username');
 
     function send() {
-        const user = nameInput.value.trim() || 'Guest';
+        const user = nameInput.value.trim();
         const text = msgInput.value.trim();
+
+        if (!user) {
+            nameInput.classList.add('error-shake');
+            nameInput.focus();
+            setTimeout(() => nameInput.classList.remove('error-shake'), 400);
+            return;
+        }
+
         if (!text) return;
 
         chatData.set({
@@ -168,8 +163,8 @@
         msgInput.value = '';
     }
 
-    // Render pesan
-    chatData.map().once((data) => {
+    // Mengambil data
+    chatData.map().once((data, id) => {
         if (data && data.text) {
             const div = document.createElement('div');
             div.className = 'msg-card';
@@ -182,7 +177,9 @@
         }
     });
 
+    // Event Listeners
     msgInput.addEventListener("keypress", (e) => { if (e.key === "Enter") send(); });
+    nameInput.addEventListener("keypress", (e) => { if (e.key === "Enter") msgInput.focus(); });
 </script>
 
 </body>
